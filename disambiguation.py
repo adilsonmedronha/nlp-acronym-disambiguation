@@ -1,5 +1,15 @@
+from functools import lru_cache
 from sklearn.metrics.pairwise import cosine_similarity
 from create_embeddings import get_sentence_embedding
+import re
+import pandas as pd
+
+
+
+@lru_cache()
+def get_acronyms_dataframe():
+    return pd.read_pickle("data/synthetic_wemb_MiniLM_L6_v2.pkl")
+
 
 def jaccard_similarity(list1, list2):
     set1 = set(list1)
@@ -26,18 +36,25 @@ def jaccard_based(df_sintatic, results):
 
     return results
 
-def get_acronym(sentence):
-    pass
+def get_acronym(sentence: str) -> str:
+    pattern = r'\b[A-Z]+\d?[&\/]?[A-Z]+\b|\b[A-Z]{2,}(?:s\b)?'
 
-def is_ambiguous(acronym):
-    return acronym in AMBIGUOUS_ACRONYMS
+    return re.findall(pattern, sentence)[0]
 
-def expand_sentence(sentence, acr_expanded):
-    pass
+def is_ambiguous(acronym: str) -> bool:
+    df_acronyms = get_acronyms_dataframe()
+
+    return len(df_acronyms[df_acronyms['Acronym'] == acronym]) > 1
+
+def expand_sentence(sentence, acronym):
+    df_acronyms = get_acronyms_dataframe()
+
+    expansions_for_acronym = df_acronyms[df_acronyms['Acronym'] == acronym]['Expansion'].unique()
+    return re.sub(re.escape(acronym), expansions_for_acronym[0], sentence)
 
 def single_inference(sentence):
-    acr_target = get_acronym(sentence) 
-    if not is_ambiguous:
+    acr_target = get_acronym(sentence)
+    if not is_ambiguous(acr_target):
         return expand_sentence(sentence, acr_target) 
     else:
         sentence_emb = get_sentence_embedding(sentence)
