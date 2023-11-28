@@ -3,6 +3,7 @@ from sentence_transformers import SentenceTransformer
 from concurrent.futures import ThreadPoolExecutor
 from argparse import ArgumentParser
 
+
 def get_sentence_embedding(sentence):
     model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
     embeddings = model.encode(sentence)
