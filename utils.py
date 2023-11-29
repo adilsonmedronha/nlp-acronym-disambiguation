@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
+import random
+from tabulate import tabulate
 
 
 def plot_cfm(confusion, results_df):
@@ -25,3 +27,12 @@ def plot_bar(precision_df):
     plt.title('Precision per Class')
     plt.xticks(rotation=90)
     plt.show()
+
+
+def pprint(df_not_ambiguous, num_pairs):
+    print(tabulate([['Sentence', 'Expansion']], headers='firstrow'))
+    for _ in range(num_pairs):
+        random_index = random.randint(0, len(df_not_ambiguous) - 1)
+        random_sentence = df_not_ambiguous['sentence'].iloc[random_index]
+        random_expansion = df_not_ambiguous['expansions'].iloc[random_index]
+        print(tabulate([[random_sentence, random_expansion]], tablefmt='plain'))
