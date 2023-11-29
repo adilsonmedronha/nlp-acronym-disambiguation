@@ -80,30 +80,34 @@ def single_inference(sentence):
     acr_target = get_acronym(sentence)
     if not is_ambiguous(acr_target):
         return expand_sentence(sentence, acr_target)
-    elif acr_target in {'AI', 'AR', 'CA', 'CPM', 'DD', 'PR', 'SME'}:
-        tokenized_input = TOKENIZER(sentence, padding=True, truncation=True, return_tensors='pt')
-        tokenized_input = {key: value for key, value in tokenized_input.items()}
-        with torch.no_grad():
-            outputs = LOADED_MODEL(**tokenized_input)
+
+    tokenized_input = TOKENIZER(sentence, padding=True, truncation=True, return_tensors='pt')
+    with torch.no_grad():
+        outputs = LOADED_MODEL(**tokenized_input)
+
+    if acr_target in {'AI', 'AR', 'CA', 'CPM', 'DD', 'PR', 'SME'} and torch.max(outputs.logits) > 60:
         predicted_labels = torch.argmax(outputs.logits, dim=1)
         predicted_expansion = CLASS_MAPPING[predicted_labels.item()]
-        return expand_sentence(sentence, predicted_expansion)
-    else:    
-        sentence_emb = np.array(get_sentence_embedding(sentence))
+    else:
+        sentence_emb = get_sentence_embedding(sentence)
         our_dataset = get_dataset_dataframe()
         unique_embeddings = {}
         df_filtered = our_dataset[our_dataset["Acronym"] == acr_target]
+
         for expansion in df_filtered["Expansion"].unique():
-            expansion_emb = np.array(df_filtered[df_filtered["Expansion"] == expansion].iloc[0]["Expansion_Emb"])
+            expansion_emb = torch.from_numpy(np.array(df_filtered[df_filtered["Expansion"] == expansion].iloc[0]["Expansion_Emb"]))
             unique_embeddings[expansion] = expansion_emb
 
+        sentence_emb = torch.from_numpy(np.array(sentence_emb))
         predictions = {
-            expansion: cosine_similarity(sentence_emb.reshape(1, -1), emb.reshape(1, -1))[0][0]
+            expansion: cosine_similarity(sentence_emb.reshape(1, -1).numpy(), emb.reshape(1, -1).numpy())[0][0]
             for expansion, emb in unique_embeddings.items()
         }
         acr_expanded_pred = max(predictions, key=predictions.get)
         print(acr_expanded_pred)
-        return expand_sentence(sentence, acr_expanded_pred)
+        predicted_expansion = acr_expanded_pred
+
+    return expand_sentence(sentence, predicted_expansion)
         
 
 def embedding_based_only(df_sintatic, results):
