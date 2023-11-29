@@ -42,17 +42,16 @@ def get_acronyms_dataframe():
 def is_ambiguous(acronym: str) -> bool:
     df_acronyms = get_acronyms_dataframe()
 
-    return len(df_acronyms[df_acronyms['Acronym'] == acronym]['Resolution'].unique()) > 1
+    return len(df_acronyms[df_acronyms['Acronym'] == acronym]['Expansion'].unique()) > 1
 
 def expanded_acronym(acronym):
     df_acronyms = get_acronyms_dataframe()
-
-    return df_acronyms[df_acronyms['Acronym'] == acronym]['Resolution'].values[0]
+    return df_acronyms[df_acronyms['Acronym'] == acronym]['Expansion'].values[0]
 
 def expand_sentence(sentence, acronym):
     df_acronyms = get_acronyms_dataframe()
     expansions_for_acronym = df_acronyms[df_acronyms['Acronym'] == acronym]['Expansion'].unique()
-    return re.sub(re.escape(acronym), expansions_for_acronym[0], sentence)
+    return re.sub(re.escape(acronym), f" >>[{expansions_for_acronym[0]}]<< ", sentence)
 
 def single_inference(sentence):
     acr_target = get_acronym(sentence)
