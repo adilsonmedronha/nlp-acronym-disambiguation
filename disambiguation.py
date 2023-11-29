@@ -1,10 +1,27 @@
 from functools import lru_cache
 from sklearn.metrics.pairwise import cosine_similarity
 from create_embeddings import get_sentence_embedding
+from transformers import BertForSequenceClassification
 import re
 import pandas as pd
 import numpy as np
+from transformers import BertTokenizer
+import torch
 
+
+CLASS_MAPPING = {
+    0: 'Accounts Receivable',
+    1: 'Annual Review',
+    2: 'Artificial Intelligence',
+    3: 'Chartered Accountant',
+    4: 'Cost Per Mille',
+    5: 'Cost Per Million',
+    6: 'Public Relations',
+    7: 'Small and Medium-sized Enterprises',
+    8: 'Direct Deposit'
+}
+TOKENIZER = BertTokenizer.from_pretrained('bert-base-cased')
+LOADED_MODEL = BertForSequenceClassification.from_pretrained('model_weight')
 
 def jaccard_similarity(list1, list2):
     set1 = set(list1)
@@ -63,7 +80,15 @@ def single_inference(sentence):
     acr_target = get_acronym(sentence)
     if not is_ambiguous(acr_target):
         return expand_sentence(sentence, acr_target)
-    else:
+    elif acr_target in {'AI', 'AR', 'CA', 'CPM', 'DD', 'PR', 'SME'}:
+        tokenized_input = TOKENIZER(sentence, padding=True, truncation=True, return_tensors='pt')
+        tokenized_input = {key: value for key, value in tokenized_input.items()}
+        with torch.no_grad():
+            outputs = LOADED_MODEL(**tokenized_input)
+        predicted_labels = torch.argmax(outputs.logits, dim=1)
+        predicted_expansion = CLASS_MAPPING[predicted_labels.item()]
+        return expand_sentence(sentence, predicted_expansion)
+    else:    
         sentence_emb = np.array(get_sentence_embedding(sentence))
         our_dataset = get_dataset_dataframe()
         unique_embeddings = {}
@@ -80,6 +105,7 @@ def single_inference(sentence):
         print(acr_expanded_pred)
         return expand_sentence(sentence, acr_expanded_pred)
         
+
 def embedding_based_only(df_sintatic, results):
     for acronym in df_sintatic["Acronym"].unique():
         df_filtered = df_sintatic[df_sintatic["Acronym"] == acronym]
