@@ -37,17 +37,17 @@ def get_acronym(sentence: str) -> str:
 
 @lru_cache()
 def get_acronyms_dataframe():
-    return pd.read_pickle("data/not_ambiguous.csv")
+    return pd.read_csv("data/acronyms_only.csv")
 
 def is_ambiguous(acronym: str) -> bool:
     df_acronyms = get_acronyms_dataframe()
-    return len(df_acronyms[df_acronyms['Acronym'] == acronym]) > 1
+
+    return len(df_acronyms[df_acronyms['Acronym'] == acronym]['Resolution'].unique()) > 1
 
 def expanded_acronym(acronym):
     df_acronyms = get_acronyms_dataframe()
 
-    df_acronyms[df_acronyms['Acronym'] == acronym]['Expansion']
-    return df_acronyms[df_acronyms['Acronym'] == acronym]['Expansion']
+    return df_acronyms[df_acronyms['Acronym'] == acronym]['Resolution'].values[0]
 
 def expand_sentence(sentence, acronym):
     df_acronyms = get_acronyms_dataframe()
@@ -67,10 +67,11 @@ def embedding_based_only(df_sintatic, results):
     for acronym in df_sintatic["Acronym"].unique():
         if not is_ambiguous(acronym):
             expanded = expanded_acronym(acronym)
-            print(expanded)
-            results["Label"].append(expanded)
-            results["Prediction"].append(expanded)
-            results["True"].append(True)
+            # print(expanded)
+            # results["Label"].append(expanded)
+            # results["Prediction"].append(expanded)
+            # results["True"].append(True)
+            continue
         else:
             df_filtered = df_sintatic[df_sintatic["Acronym"] == acronym]
             expansion_unique = df_filtered["Expansion"].unique()
@@ -79,7 +80,6 @@ def embedding_based_only(df_sintatic, results):
                 expansion: df_filtered[df_filtered["Expansion"] == expansion].iloc[0]["Expansion_Emb"]
                 for expansion in expansion_unique
             }
-            print(acronym)
 
             for _, row in df_filtered.iterrows():
                 sentence_emb = row["Sentence_Emb"]
